@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, FolderPlus, Building2, User, DollarSign, Calendar } from 'lucide-react';
+import { X, Plus, FolderPlus, Building2, User, DollarSign, Calendar, AlertCircle } from 'lucide-react';
 import { Demand, DemandStatus } from '../types';
 
 interface NewDemandModalProps {
@@ -21,6 +21,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
   const [amountDevolucao, setAmountDevolucao] = useState('1500');
   const [status, setStatus] = useState<DemandStatus>('em_producao');
   const [protocolNumber, setProtocolNumber] = useState('');
+  const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
@@ -66,6 +67,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
           status: 'pendente',
         },
       },
+      notes: notes.trim() || undefined,
       auditLogs: [
         {
           id: `log-${Date.now()}`,
@@ -79,6 +81,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
     };
 
     onAddDemand(newDemand);
+    setNotes('');
     onClose();
   };
 
@@ -264,6 +267,33 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Observações e Alerta de Prazos */}
+            <div className="border-t border-slate-200 pt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Observações Internas & Prazos
+                </label>
+                <span className="text-[11px] text-slate-400 font-medium">Opcional</span>
+              </div>
+
+              {/* Aviso sobre prazos e acordos */}
+              <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/80 flex items-start gap-2.5 text-xs text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <span className="font-bold text-amber-950">Aviso sobre prazos e acordos: </span>
+                  Registre aqui prazos combinados com o produtor, datas de vistoria a campo, agendamentos com confrontantes ou urgências legais perante órgãos públicos (IAT, INCRA, etc.).
+                </div>
+              </div>
+
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ex: Prazo estimado com o produtor de 20 dias; aguardando certidão atualizada do cartório para validação de divisas..."
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#65b32e]/30 focus:border-[#65b32e] text-slate-800 placeholder-slate-400 resize-none"
+              />
             </div>
 
             <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">

@@ -190,6 +190,25 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
               </div>
             )}
 
+            {/* Observações da Demanda / O.S. */}
+            {demand.notes && (
+              <div className="bg-amber-50/60 border border-amber-200/80 rounded-xl p-4 shadow-2xs">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                      Observações & Prazos Registrados
+                    </h4>
+                    <p className="text-xs text-amber-950 mt-1 leading-relaxed font-medium">
+                      {demand.notes}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Seção de Protocolo */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
