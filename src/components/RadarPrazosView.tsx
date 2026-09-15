@@ -33,7 +33,7 @@ export const RadarPrazosView: React.FC<RadarPrazosViewProps> = ({ demands, onSel
           </div>
           <div>
             <h2 className="text-base font-bold text-[#2b3a24] tracking-tight flex items-center gap-2">
-              Radar de Prazos Fatais e Notificações Oficiais
+              Radar de Prazos próximos e Notificações Oficiais
               <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-200">
                 Foco Diretoria
               </span>

@@ -161,7 +161,7 @@ export function App() {
           {/* Navigation Tabs */}
           <div className="inline-flex p-1 bg-slate-200/80 rounded-xl border border-slate-300/60 shadow-inner">
             
-            {/* Tab 1: Radar de Prazos Fatais */}
+            {/* Tab 1: Radar de Prazos Próximos */}
             <button
               onClick={() => {
                 setActiveTab('radar');
@@ -174,7 +174,7 @@ export function App() {
               }`}
             >
               <AlertTriangle className={`w-4 h-4 ${activeTab === 'radar' ? 'text-rose-600' : 'text-slate-500'}`} />
-              <span>Aba 1: Radar de Prazos Fatais e Notificações</span>
+              <span>Aba 1: Radar de Prazos próximos e Notificações</span>
               {urgentCount > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[11px] font-black bg-rose-600 text-white animate-pulse">
                   {urgentCount}
