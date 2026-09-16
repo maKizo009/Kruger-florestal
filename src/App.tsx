@@ -6,17 +6,10 @@ import { PipelineView } from './components/PipelineView';
 import { DetailDrawer } from './components/DetailDrawer';
 import { NewDemandModal } from './components/NewDemandModal';
 import { currentUser, initialDemands } from './data/mockData';
-import { Demand, DemandStatus } from './types';
+import { Demand } from './types';
 import { 
   AlertTriangle, 
-  Kanban, 
-  Filter, 
-  Layers, 
-  Search, 
-  RefreshCw,
-  Clock,
-  CheckCircle2,
-  FolderOpen
+  Kanban 
 } from 'lucide-react';
 
 export function App() {
@@ -119,6 +112,16 @@ export function App() {
 
   const urgentCount = demands.filter(d => d.status === 'com_pendencia').length;
 
+  // Reset do dashboard para a tela inicial (ao clicar no logotipo da Krüger)
+  const handleGoHome = () => {
+    setActiveTab('radar');
+    setSearchQuery('');
+    setStatusFilter('all');
+    setIsDrawerOpen(false);
+    setSelectedDemand(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f8f3] text-slate-900 flex flex-col antialiased selection:bg-[#65b32e] selection:text-white">
       
@@ -129,6 +132,11 @@ export function App() {
         onSearchChange={setSearchQuery}
         onNewDemandClick={() => setIsNewModalOpen(true)}
         openUrgentBadgeCount={urgentCount}
+        onLogoClick={handleGoHome}
+        onAlertsClick={() => {
+          setActiveTab('radar');
+          setStatusFilter('all');
+        }}
       />
 
       {/* Main Operational Body */}

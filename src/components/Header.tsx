@@ -2,12 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { 
   Search, 
   Plus, 
-  FolderSearch, 
-  Trees, 
-  Bell, 
-  ShieldCheck, 
-  Sparkles,
-  ChevronDown
+  Bell 
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -17,6 +12,8 @@ interface HeaderProps {
   onSearchChange: (query: string) => void;
   onNewDemandClick: () => void;
   openUrgentBadgeCount?: number;
+  onLogoClick?: () => void;
+  onAlertsClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   onNewDemandClick,
   openUrgentBadgeCount = 1,
+  onLogoClick,
+  onAlertsClick,
 }) => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,24 +46,33 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Logo & Identity: Krüger Florestal */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="h-10 px-2 py-1 bg-white rounded-lg border border-slate-200 shadow-xs flex items-center justify-center">
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onLogoClick?.();
+            }}
+            className="flex items-center gap-3 shrink-0 group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#65b32e] rounded-lg p-1 -m-1 transition-all"
+            title="Voltar ao início do sistema"
+            aria-label="Krüger Florestal - Voltar ao início"
+          >
+            <div className="h-10 px-2 py-1 bg-white rounded-lg border border-slate-200 shadow-xs flex items-center justify-center group-hover:border-[#65b32e]/60 group-hover:shadow-sm transition-all">
               <img 
                 src="/kruger-logo.jpeg" 
                 alt="Krüger Florestal" 
-                className="h-7 w-auto object-contain"
+                className="h-7 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
               />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold tracking-tight text-[#2b3a24] text-base leading-none">krüger</span>
-                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#65b32e]/15 text-[#3a6b18] border border-[#65b32e]/30 tracking-wider">
+                <span className="font-extrabold tracking-tight text-[#2b3a24] text-base leading-none group-hover:text-[#1e2e18] transition-colors">krüger</span>
+                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#65b32e]/15 text-[#3a6b18] border border-[#65b32e]/30 tracking-wider group-hover:bg-[#65b32e]/25 transition-colors">
                   FLORESTAL
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Operações & Consultoria Ambiental</p>
+              <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5 group-hover:text-slate-700 transition-colors">Operações & Consultoria Ambiental</p>
             </div>
-          </div>
+          </a>
 
           {/* Central Global Search Input */}
           <div className="flex-1 max-w-2xl mx-2 sm:mx-6">
@@ -95,8 +103,9 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             {/* Quick alert badge */}
             <button 
+              onClick={onAlertsClick}
               title="Notificações e Exigências Críticas"
-              className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <Bell className="w-5 h-5" />
               {openUrgentBadgeCount > 0 && (
