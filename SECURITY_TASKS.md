@@ -21,7 +21,7 @@ Esta análise avaliou a base de código do sistema **Krüger Florestal** sob as 
 | **A03: Injection (XSS)** | Sanitização de links externos e protocolos inseguros (`driveUrl`) | **Alto** | 🟢 Implementado |
 | **A04: Insecure Design** | Limites de tamanho (maxLength), sanitização de inputs e numéricos | Médio | 🟢 Implementado |
 | **A05: Security Misconfiguration** | Content Security Policy (CSP), headers de segurança e restrição de hosts | Médio | 🟡 Em Andamento (TASK-02 Concluída) |
-| **A06: Vulnerable Components** | Varredura de dependências de terceiros (`npm audit`) | Informativo | 🟢 Aprovado |
+| **A06: Vulnerable Components** | Varredura de dependências e monitoramento contínuo (CI/CD) | Informativo | 🟢 Implementado |
 | **A07: Identification Failures** | Gerenciamento de sessão e autenticação de usuário | Médio | 🟡 A Fazer |
 | **A08: Software & Data Integrity** | Integridade de pacotes e scripts externos | Baixo | 🟢 Aprovado |
 | **A09: Logging & Monitoring** | Registro de logs de auditoria não-manipuláveis e com data real | Baixo | 🟢 Implementado |
@@ -171,13 +171,18 @@ export function maskDocument(doc?: string | null): string {
 
 ---
 
-### 🟢 [TASK-08] Monitoramento Contínuo de Dependências
-- [ ] **Categoria:** A06: Vulnerable and Outdated Components
-- [ ] **Severidade:** Informativo / Preventivo
-- [ ] **Status Atual:** ✅ **0 vulnerabilidades encontradas no `npm audit`**.
-- [ ] **Ação Requerida:**
-  1. Manter rotina periódica de `npm audit` em CI/CD ou antes de cada release em produção.
-  2. Manter `package-lock.json` versionado e revisado contra pacotes órfãos ou não auditados.
+### 🟢 [TASK-08] Monitoramento Contínuo de Dependências (Implementado)
+- [x] **Categoria:** A06: Vulnerable and Outdated Components
+- [x] **Severidade:** Informativo / Preventivo
+- [x] **Status Atual:** ✅ **0 vulnerabilidades encontradas no `npm audit`**.
+- [x] **Arquivos configurados:**
+  - [`package.json`](file:///C:/Users/Acer/Dev/Kruger-florestal/package.json)
+  - [`package-lock.json`](file:///C:/Users/Acer/Dev/Kruger-florestal/package-lock.json)
+  - [`.github/workflows/security.yml`](file:///C:/Users/Acer/Dev/Kruger-florestal/.github/workflows/security.yml)
+- [x] **Ação Requerida:**
+  1. Manter rotina periódica de `npm audit` em CI/CD ou antes de cada release em produção (adicionados scripts `npm run audit`, `npm run audit:ci` e `npm run security:check`).
+  2. Implementar pipeline de CI/CD automatizado via GitHub Actions ([`.github/workflows/security.yml`](file:///C:/Users/Acer/Dev/Kruger-florestal/.github/workflows/security.yml)) com disparo semanal (cron) e em pull requests/pushes.
+  3. Manter `package-lock.json` versionado e revisado contra pacotes órfãos ou não auditados (instalação estrita com `npm ci`).
 
 ---
 

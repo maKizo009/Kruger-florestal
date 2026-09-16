@@ -1,0 +1,38 @@
+name: Security & Quality Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Executa semanalmente toda segunda-feira as 08:00 UTC para monitoramento continuo de vulnerabilidades
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit-and-build:
+    name: Dependency Audit, Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies strictly via package-lock.json
+        run: npm ci
+
+      - name: Audit dependencies for vulnerabilities (OWASP A06)
+        run: npm run audit:ci
+
+      - name: Run code linter
+        run: npm run lint
+
+      - name: Run TypeScript check & production build
+        run: npm run build
