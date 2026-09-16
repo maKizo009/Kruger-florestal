@@ -2,16 +2,13 @@ import React from 'react';
 import { 
   AlertTriangle, 
   Clock, 
-  ExternalLink, 
-  UserCheck, 
-  FileText, 
   Building2, 
   FolderGit2, 
   ChevronRight,
-  ShieldAlert,
-  Calendar
+  ShieldAlert
 } from 'lucide-react';
 import { Demand } from '../types';
+import { maskDocument } from '../utils/security';
 
 interface RadarPrazosViewProps {
   demands: Demand[];
@@ -90,10 +87,14 @@ export const RadarPrazosView: React.FC<RadarPrazosViewProps> = ({ demands, onSel
                     <div className="font-bold text-slate-900 group-hover:text-[#2b3a24] transition-colors">
                       {demand.client.clientName}
                     </div>
-                    <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                    <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
                       <span className="font-semibold text-slate-700">{demand.client.farmName}</span>
                       <span>•</span>
                       <span>{demand.client.cityState}</span>
+                      <span>•</span>
+                      <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/60" title="Documento protegido (LGPD)">
+                        {maskDocument(demand.client.document)}
+                      </span>
                     </div>
                   </td>
 

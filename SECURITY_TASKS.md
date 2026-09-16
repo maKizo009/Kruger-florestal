@@ -17,10 +17,10 @@ Esta análise avaliou a base de código do sistema **Krüger Florestal** sob as 
 | Categoria OWASP | Item Auditado | Severidade | Status |
 | :--- | :--- | :---: | :---: |
 | **A01: Broken Access Control** | Controle de permissões por perfil (Diretoria vs Técnico) | Médio | 🟡 A Fazer |
-| **A02: Cryptographic Failures** | Exposição de dados sensíveis (LGPD: CPF/CNPJ em texto plano) | Baixo / Médio | 🟡 A Fazer |
-| **A03: Injection (XSS)** | Sanitização de links externos e protocolos inseguros (`driveUrl`) | **Alto** | 🔴 Prioritário |
-| **A04: Insecure Design** | Ausência de limites de tamanho (`maxLength`) e validação de inputs | Médio | 🟡 A Fazer |
-| **A05: Security Misconfiguration** | Ausência de Content Security Policy (CSP) e `allowedHosts: true` | Médio | 🟡 A Fazer |
+| **A02: Cryptographic Failures** | Exposição de dados sensíveis (LGPD: CPF/CNPJ mascarado com reveal) | Baixo / Médio | 🟢 Implementado |
+| **A03: Injection (XSS)** | Sanitização de links externos e protocolos inseguros (`driveUrl`) | **Alto** | 🟢 Implementado |
+| **A04: Insecure Design** | Limites de tamanho (maxLength), sanitização de inputs e numéricos | Médio | 🟢 Implementado |
+| **A05: Security Misconfiguration** | Content Security Policy (CSP), headers de segurança e restrição de hosts | Médio | 🟡 Em Andamento (TASK-02 Concluída) |
 | **A06: Vulnerable Components** | Varredura de dependências de terceiros (`npm audit`) | Informativo | 🟢 Aprovado |
 | **A07: Identification Failures** | Gerenciamento de sessão e autenticação de usuário | Médio | 🟡 A Fazer |
 | **A08: Software & Data Integrity** | Integridade de pacotes e scripts externos | Baixo | 🟢 Aprovado |
@@ -31,12 +31,12 @@ Esta análise avaliou a base de código do sistema **Krüger Florestal** sob as 
 
 ## 📝 Checklist de Tarefas de Correção (Tasks)
 
-### 🔴 [TASK-01] Sanitização de URLs Externas e Prevenção de XSS
-- [ ] **Categoria:** A03: Injection & Cross-Site Scripting (XSS)
-- [ ] **Severidade:** **Alta**
-- [ ] **Arquivo afetado:** [`src/components/DetailDrawer.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/DetailDrawer.tsx)
-- [ ] **Descrição do Risco:** Links externos dinâmicos (`demand.client.driveUrl` na linha 128 e `demand.protocolReceiptUrl` na linha 255) são inseridos diretamente em elementos `<a href={...}>`. Se um registro receber uma URL com esquema `javascript:`, `data:` ou redirecionamento arbitrário, scripts maliciosos podem ser executados no contexto da aplicação ao clicar.
-- [ ] **Ação Requerida:**
+### 🟢 [TASK-01] Sanitização de URLs Externas e Prevenção de XSS (Implementado)
+- [x] **Categoria:** A03: Injection & Cross-Site Scripting (XSS)
+- [x] **Severidade:** **Alta**
+- [x] **Arquivo afetado:** [`src/components/DetailDrawer.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/DetailDrawer.tsx) e [`src/utils/security.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/utils/security.ts)
+- [x] **Descrição do Risco:** Links externos dinâmicos (`demand.client.driveUrl` e `demand.protocolReceiptUrl`) são inseridos diretamente em elementos `<a href={...}>`. Se um registro receber uma URL com esquema `javascript:`, `data:` ou redirecionamento arbitrário, scripts maliciosos podem ser executados no contexto da aplicação ao clicar.
+- [x] **Ação Requerida:**
   1. Criar uma função utilitária `sanitizeExternalUrl(url?: string): string | null` que valide estritamente protocolos seguros (`https://` ou `http://`).
   2. Adicionar `rel="noopener noreferrer"` em todas as tags `<a>` que usam `target="_blank"` para blindar contra *Reverse Tabnabbing*.
 
@@ -58,19 +58,19 @@ export function sanitizeExternalUrl(url?: string): string | null {
 
 ---
 
-### 🟡 [TASK-02] Adicionar Content Security Policy (CSP) e Headers de Segurança
-- [ ] **Categoria:** A05: Security Misconfiguration
-- [ ] **Severidade:** Média
-- [ ] **Arquivo afetado:** [`index.html`](file:///C:/Users/Acer/Dev/Kruger-florestal/index.html)
-- [ ] **Descrição do Risco:** O arquivo HTML base não define nenhuma política de segurança de conteúdo. Em caso de injeção acidental em qualquer biblioteca, scripts remotos não autorizados podem ser carregados sem restrição.
-- [ ] **Ação Requerida:**
+### 🟢 [TASK-02] Adicionar Content Security Policy (CSP) e Headers de Segurança (Implementado)
+- [x] **Categoria:** A05: Security Misconfiguration
+- [x] **Severidade:** Média
+- [x] **Arquivo afetado:** [`index.html`](file:///C:/Users/Acer/Dev/Kruger-florestal/index.html)
+- [x] **Descrição do Risco:** O arquivo HTML base não definia nenhuma política de segurança de conteúdo. Em caso de injeção acidental em qualquer biblioteca, scripts remotos não autorizados poderiam ser carregados sem restrição.
+- [x] **Ação Requerida:**
   1. Adicionar `<meta http-equiv="Content-Security-Policy" content="...">` restringindo fontes de scripts, estilos, conexões e objetos.
   2. Adicionar `<meta name="referrer" content="strict-origin-when-cross-origin" />`.
   3. Adicionar `<meta http-equiv="X-Content-Type-Options" content="nosniff" />`.
 
 ```html
 <!-- index.html -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self';" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 ```
@@ -95,39 +95,42 @@ server: {
 
 ---
 
-### 🟡 [TASK-04] Validação Estrita, Limite de Caracteres e Sanitização em Formulários
-- [ ] **Categoria:** A04: Insecure Design & Input Validation
-- [ ] **Severidade:** Média
-- [ ] **Arquivo afetado:** [`src/components/NewDemandModal.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/NewDemandModal.tsx)
-- [ ] **Descrição do Risco:** Os campos de entrada (`folderNumber`, `document`, `clientName`, `farmName`, `notes`, `amounts`) não possuem limites de tamanho (`maxLength`), máscaras estritas nem validação de integridade. É possível submeter strings de comprimento infinito (risco de DoS no client ou crash no layout), valores numéricos negativos ou caracteres de controle.
-- [ ] **Ação Requerida:**
-  1. Adicionar `maxLength` em todos os inputs (ex: `folderNumber` max 10 dígitos, `clientName` max 120, `notes` max 1000).
+### 🟢 [TASK-04] Validação Estrita, Limite de Caracteres e Sanitização em Formulários (Implementado)
+- [x] **Categoria:** A04: Insecure Design & Input Validation
+- [x] **Severidade:** Média
+- [x] **Arquivo afetado:** [`src/components/NewDemandModal.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/NewDemandModal.tsx) e [`src/utils/security.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/utils/security.ts)
+- [x] **Descrição do Risco:** Os campos de entrada (`folderNumber`, `document`, `clientName`, `farmName`, `notes`, `amounts`) não possuíam limites de tamanho (`maxLength`), máscaras estritas nem validação de integridade.
+- [x] **Ação Requerida:**
+  1. Adicionar `maxLength` em todos os inputs (ex: `folderNumber` max 10 dígitos, `clientName` max 120, `notes` max 1000 com contador visual, `farmName` max 120, `document` max 18).
   2. Forçar sanitização numérica em `amountEntrada`, `amountProtocolo`, `amountDevolucao` (impedir valores negativos ou `NaN`).
   3. Sanitizar `folderNumber` para aceitar apenas caracteres alfanuméricos (`/^[a-zA-Z0-9_-]+$/`), prevenindo manipulações de caminho no Google Drive.
 
 ---
 
-### 🟡 [TASK-05] Proteção de Dados Pessoais (LGPD) e Anonimização de CPF/CNPJ
-- [ ] **Categoria:** A02: Cryptographic Failures & Sensitive Data Exposure
-- [ ] **Severidade:** Baixa / Média (Regulatório - LGPD)
-- [ ] **Arquivos afetados:**
+### 🟢 [TASK-05] Proteção de Dados Pessoais (LGPD) e Anonimização de CPF/CNPJ (Implementado)
+- [x] **Categoria:** A02: Cryptographic Failures & Sensitive Data Exposure
+- [x] **Severidade:** Baixa / Média (Regulatório - LGPD)
+- [x] **Arquivos afetados:**
   - [`src/components/DetailDrawer.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/DetailDrawer.tsx)
   - [`src/components/RadarPrazosView.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/RadarPrazosView.tsx)
-- [ ] **Descrição do Risco:** Documentos fiscais e pessoais (CPF de produtores rurais) são exibidos integralmente em texto plano na interface sem opção de máscara ou controle de visibilidade.
-- [ ] **Ação Requerida:**
-  1. Implementar função de máscara para CPF (ex: `***.456.789-**`) e CNPJ (ex: `12.***.***/0001-**`).
-  2. Disponibilizar botão "revelar documento" apenas quando o operador solicitar ativamente ou conforme permissão de perfil.
+  - [`src/utils/security.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/utils/security.ts)
+- [x] **Descrição do Risco:** Documentos fiscais e pessoais (CPF de produtores rurais) eram exibidos integralmente em texto plano na interface sem opção de máscara ou controle de visibilidade.
+- [x] **Ação Requerida:**
+  1. Implementar função de máscara para CPF (ex: `***.456.789-**`) e CNPJ (ex: `12.***.*** / ****-**`).
+  2. Disponibilizar botão "revelar documento" (com toggle de visualização/ícone de olho) apenas quando o operador solicitar ativamente.
+  3. Apresentar dados anonimizados por padrão no Radar de Prazos.
 
 ```tsx
-export function maskDocument(doc: string): string {
+export function maskDocument(doc?: string | null): string {
+  if (!doc || typeof doc !== 'string') return '';
   const clean = doc.replace(/\D/g, '');
   if (clean.length === 11) {
     return `***.${clean.substring(3, 6)}.${clean.substring(6, 9)}-**`;
   }
   if (clean.length === 14) {
-    return `${clean.substring(0, 2)}.***.***/${clean.substring(8, 12)}-**`;
+    return `${clean.substring(0, 2)}.***.***/${clean.substring(8, 12).replace(/./g, '*')}-${clean.substring(12)}`;
   }
-  return doc;
+  return doc.length > 5 ? `${doc.slice(0, 2)}***${doc.slice(-2)}` : '***';
 }
 ```
 

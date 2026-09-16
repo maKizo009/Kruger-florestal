@@ -1,24 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   ExternalLink, 
   FolderGit2, 
   FileText, 
-  Building2, 
   Clock, 
   AlertTriangle, 
   CheckCircle2, 
   Coins, 
   History, 
-  UserCheck, 
   Calendar, 
-  MapPin, 
-  CreditCard,
-  ArrowRight,
-  ShieldCheck,
-  FileCheck
+  FileCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
-import { Demand, FinancialMilestone, PaymentStatus } from '../types';
+import { Demand } from '../types';
+import { sanitizeExternalUrl, maskDocument } from '../utils/security';
 
 interface DetailDrawerProps {
   isOpen: boolean;
@@ -33,9 +30,20 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
   onClose,
   onToggleFinancialStatus,
 }) => {
+  const [showFullDocument, setShowFullDocument] = useState(false);
+  const [prevDemandId, setPrevDemandId] = useState<string | null>(null);
+
+  const currentDemandId = demand ? demand.id : null;
+  if (currentDemandId !== prevDemandId) {
+    setPrevDemandId(currentDemandId);
+    setShowFullDocument(false);
+  }
+
   if (!isOpen || !demand) return null;
 
   const fin = demand.financialMilestones;
+  const sanitizedDriveUrl = sanitizeExternalUrl(demand.client.driveUrl);
+  const sanitizedReceiptUrl = sanitizeExternalUrl(demand.protocolReceiptUrl);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -119,20 +127,47 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                 <p className="text-xs text-emerald-100/80 flex items-center gap-2 mt-0.5">
                   <span className="font-medium text-emerald-200">{demand.client.farmName}</span>
                   <span>•</span>
-                  <span>Doc: {demand.client.document}</span>
+                  <span className="inline-flex items-center gap-1.5 font-mono">
+                    <span>
+                      Doc: {showFullDocument ? demand.client.document : maskDocument(demand.client.document)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullDocument(!showFullDocument)}
+                      className="p-1 rounded text-emerald-200/90 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title={showFullDocument ? "Ocultar documento (LGPD)" : "Revelar documento completo (LGPD)"}
+                      aria-label={showFullDocument ? "Ocultar documento" : "Revelar documento completo"}
+                    >
+                      {showFullDocument ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </span>
                 </p>
               </div>
 
               {/* Direct Link: Open in Drive */}
-              <a
-                href={demand.client.driveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#65b32e] hover:bg-[#76c935] text-[#142010] text-xs font-bold shadow-sm transition-colors shrink-0"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Abrir Pasta no Drive
-              </a>
+              {sanitizedDriveUrl ? (
+                <a
+                  href={sanitizedDriveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#65b32e] hover:bg-[#76c935] text-[#142010] text-xs font-bold shadow-sm transition-colors shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Abrir Pasta no Drive
+                </a>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-medium shrink-0 cursor-not-allowed"
+                  title="Link do Google Drive não configurado ou protocolo inseguro"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+                  Sem link do Drive
+                </span>
+              )}
             </div>
           </div>
 
@@ -250,11 +285,11 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                 <span className="text-xs text-slate-500">
                   Comprovante digital autenticado pelo órgão
                 </span>
-                {demand.protocolReceiptUrl ? (
+                {sanitizedReceiptUrl ? (
                   <a
-                    href={demand.protocolReceiptUrl}
+                    href={sanitizedReceiptUrl}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
                   >
                     <FileCheck className="w-3.5 h-3.5" />

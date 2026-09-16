@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Plus, FolderPlus, Building2, User, DollarSign, Calendar, AlertCircle } from 'lucide-react';
+import { X, FolderPlus, AlertCircle } from 'lucide-react';
 import { Demand, DemandStatus } from '../types';
+import { sanitizeFolderNumber, formatDocumentInput, parseSafeAmount } from '../utils/security';
 
 interface NewDemandModalProps {
   isOpen: boolean;
@@ -20,54 +21,53 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
   const [amountProtocolo, setAmountProtocolo] = useState('1500');
   const [amountDevolucao, setAmountDevolucao] = useState('1500');
   const [status, setStatus] = useState<DemandStatus>('em_producao');
-  const [protocolNumber, setProtocolNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!folderNumber || !clientName) return;
+    const safeFolder = sanitizeFolderNumber(folderNumber);
+    const safeClientName = clientName.trim().slice(0, 120);
+    if (!safeFolder || !safeClientName) return;
 
     const newDemand: Demand = {
       id: `dem-${Date.now()}`,
-      folderNumber: folderNumber.padStart(4, '0'),
-      folderId: `f-${folderNumber}`,
+      folderNumber: safeFolder.padStart(4, '0'),
+      folderId: `f-${safeFolder}`,
       client: {
         id: `cli-${Date.now()}`,
-        folderNumber: folderNumber.padStart(4, '0'),
-        clientName,
-        farmName: farmName || 'Fazenda Principal',
-        document: document || '000.000.000-00',
-        documentType: document.length > 14 ? 'CNPJ' : 'CPF',
-        driveUrl: `https://drive.google.com/drive/folders/pasta-${folderNumber}`,
+        folderNumber: safeFolder.padStart(4, '0'),
+        clientName: safeClientName,
+        farmName: (farmName.trim() || 'Fazenda Principal').slice(0, 120),
+        document: document.trim().slice(0, 18) || '000.000.000-00',
+        documentType: document.replace(/\D/g, '').length > 11 ? 'CNPJ' : 'CPF',
+        driveUrl: `https://drive.google.com/drive/folders/pasta-${safeFolder}`,
       },
       serviceName,
       serviceCode: serviceName.includes('CAR') ? 'CAR' : serviceName.includes('SIGEF') ? 'SIGEF' : serviceName.includes('GEO') ? 'GEO' : 'CCIR_ITR',
       status,
       agency,
-      protocolNumber: protocolNumber || undefined,
-      protocolDate: protocolNumber ? '04/09/2026' : undefined,
       responsibleTech,
       financialMilestones: {
         entrada: {
           label: 'Entrada Inicial',
-          amount: Number(amountEntrada) || 0,
+          amount: parseSafeAmount(amountEntrada),
           status: 'pago',
           paidAt: '04/09/2026',
         },
         protocolo: {
           label: `Protocolo ${agency}`,
-          amount: Number(amountProtocolo) || 0,
+          amount: parseSafeAmount(amountProtocolo),
           status: 'pendente',
         },
         devolucao: {
           label: 'Devolução / Homologação',
-          amount: Number(amountDevolucao) || 0,
+          amount: parseSafeAmount(amountDevolucao),
           status: 'pendente',
         },
       },
-      notes: notes.trim() || undefined,
+      notes: notes.trim().slice(0, 1000) || undefined,
       auditLogs: [
         {
           id: `log-${Date.now()}`,
@@ -117,9 +117,10 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                 <input
                   type="text"
                   required
+                  maxLength={10}
                   placeholder="Ex: 0310"
                   value={folderNumber}
-                  onChange={(e) => setFolderNumber(e.target.value)}
+                  onChange={(e) => setFolderNumber(sanitizeFolderNumber(e.target.value))}
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#65b32e]/30 focus:border-[#65b32e] font-mono"
                 />
               </div>
@@ -130,9 +131,10 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                 </label>
                 <input
                   type="text"
+                  maxLength={18}
                   placeholder="000.000.000-00"
                   value={document}
-                  onChange={(e) => setDocument(e.target.value)}
+                  onChange={(e) => setDocument(formatDocumentInput(e.target.value))}
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#65b32e]/30 focus:border-[#65b32e] font-mono"
                 />
               </div>
@@ -145,6 +147,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
               <input
                 type="text"
                 required
+                maxLength={120}
                 placeholder="Ex: Carlos Eduardo de Souza"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
@@ -158,6 +161,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
               </label>
               <input
                 type="text"
+                maxLength={120}
                 placeholder="Ex: Fazenda Boa Esperança"
                 value={farmName}
                 onChange={(e) => setFarmName(e.target.value)}
@@ -243,8 +247,14 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                   <span className="text-[11px] text-slate-500">1. Entrada</span>
                   <input
                     type="number"
+                    min="0"
+                    max="10000000"
+                    step="any"
                     value={amountEntrada}
-                    onChange={(e) => setAmountEntrada(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '' || Number(v) >= 0) setAmountEntrada(v);
+                    }}
                     className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-lg"
                   />
                 </div>
@@ -252,8 +262,14 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                   <span className="text-[11px] text-slate-500">2. Protocolo</span>
                   <input
                     type="number"
+                    min="0"
+                    max="10000000"
+                    step="any"
                     value={amountProtocolo}
-                    onChange={(e) => setAmountProtocolo(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '' || Number(v) >= 0) setAmountProtocolo(v);
+                    }}
                     className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-lg"
                   />
                 </div>
@@ -261,8 +277,14 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                   <span className="text-[11px] text-slate-500">3. Devolução</span>
                   <input
                     type="number"
+                    min="0"
+                    max="10000000"
+                    step="any"
                     value={amountDevolucao}
-                    onChange={(e) => setAmountDevolucao(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '' || Number(v) >= 0) setAmountDevolucao(v);
+                    }}
                     className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-lg"
                   />
                 </div>
@@ -275,7 +297,9 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Observações Internas & Prazos
                 </label>
-                <span className="text-[11px] text-slate-400 font-medium">Opcional</span>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {notes.length}/1000 caracteres
+                </span>
               </div>
 
               {/* Aviso sobre prazos e acordos */}
@@ -289,6 +313,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
 
               <textarea
                 rows={3}
+                maxLength={1000}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ex: Prazo estimado com o produtor de 20 dias; aguardando certidão atualizada do cartório para validação de divisas..."
