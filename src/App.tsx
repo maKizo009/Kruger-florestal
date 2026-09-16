@@ -5,14 +5,21 @@ import { RadarPrazosView } from './components/RadarPrazosView';
 import { PipelineView } from './components/PipelineView';
 import { DetailDrawer } from './components/DetailDrawer';
 import { NewDemandModal } from './components/NewDemandModal';
-import { currentUser, initialDemands } from './data/mockData';
-import { Demand } from './types';
+import { currentUser as defaultUser, mockUsers, initialDemands } from './data/mockData';
+import { Demand, UserProfile } from './types';
+import { 
+  createAuditLog, 
+  formatDateBR, 
+  formatDateTimeBR,
+  canManageFinancials 
+} from './utils/security';
 import { 
   AlertTriangle, 
   Kanban 
 } from 'lucide-react';
 
 export function App() {
+  const [currentUser, setCurrentUser] = useState<UserProfile>(defaultUser);
   const [demands, setDemands] = useState<Demand[]>(initialDemands);
   const [activeTab, setActiveTab] = useState<'radar' | 'pipeline'>('radar');
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,9 +66,15 @@ export function App() {
   const handleToggleFinancialStatus = (milestoneKey: 'entrada' | 'protocolo' | 'devolucao') => {
     if (!selectedDemand) return;
 
+    // RBAC: Apenas Diretoria ou Financeiro podem alterar parcelas financeiras (OWASP A01)
+    if (!canManageFinancials(currentUser.role)) {
+      console.warn(`[RBAC] Usuário "${currentUser.name}" com perfil "${currentUser.role}" não possui permissão para alterar faturamento.`);
+      return;
+    }
+
     const currentStatus = selectedDemand.financialMilestones[milestoneKey].status;
     const newStatus = currentStatus === 'pago' ? 'pendente' : 'pago';
-    const nowStr = '04/09 às 11:52';
+    const now = new Date();
 
     const updatedDemand: Demand = {
       ...selectedDemand,
@@ -70,17 +83,16 @@ export function App() {
         [milestoneKey]: {
           ...selectedDemand.financialMilestones[milestoneKey],
           status: newStatus,
-          paidAt: newStatus === 'pago' ? '04/09/2026' : undefined,
+          paidAt: newStatus === 'pago' ? formatDateBR(now) : undefined,
         },
       },
-      updatedAt: '04/09/2026 11:52',
+      updatedAt: formatDateTimeBR(now),
       auditLogs: [
-        {
-          id: `log-${Date.now()}`,
-          author: currentUser.name,
-          action: `marcou parcela "${selectedDemand.financialMilestones[milestoneKey].label}" como ${newStatus.toUpperCase()}`,
-          timestamp: nowStr,
-        },
+        createAuditLog(
+          currentUser.name,
+          `marcou parcela "${selectedDemand.financialMilestones[milestoneKey].label}" como ${newStatus.toUpperCase()}`,
+          now
+        ),
         ...selectedDemand.auditLogs,
       ],
     };
@@ -137,6 +149,8 @@ export function App() {
           setActiveTab('radar');
           setStatusFilter('all');
         }}
+        onSwitchUser={setCurrentUser}
+        availableUsers={mockUsers}
       />
 
       {/* Main Operational Body */}
@@ -260,6 +274,7 @@ export function App() {
         demand={selectedDemand}
         onClose={handleCloseDrawer}
         onToggleFinancialStatus={handleToggleFinancialStatus}
+        currentUser={currentUser}
       />
 
       {/* Modal to Create New Demand */}
@@ -267,6 +282,7 @@ export function App() {
         isOpen={isNewModalOpen}
         onClose={() => setIsNewModalOpen(false)}
         onAddDemand={handleAddDemand}
+        currentUser={currentUser}
       />
 
     </div>

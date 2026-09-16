@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Search, 
   Plus, 
-  Bell 
+  Bell,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -14,6 +16,8 @@ interface HeaderProps {
   openUrgentBadgeCount?: number;
   onLogoClick?: () => void;
   onAlertsClick?: () => void;
+  onSwitchUser?: (user: UserProfile) => void;
+  availableUsers?: UserProfile[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,8 +28,23 @@ export const Header: React.FC<HeaderProps> = ({
   openUrgentBadgeCount = 1,
   onLogoClick,
   onAlertsClick,
+  onSwitchUser,
+  availableUsers,
 }) => {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  // Close profile switcher menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Keyboard shortcut Ctrl+K or '/' to focus search
   useEffect(() => {
@@ -128,23 +147,98 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
 
-            {/* User Profile Info */}
-            <div className="flex items-center gap-3 pl-1">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2b3a24] to-[#405736] flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#65b32e]/40 shadow-xs">
-                  {user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+            {/* User Profile Info & RBAC Switcher */}
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#65b32e]"
+                title="Clique para alternar perfil (Simulação RBAC)"
+                aria-haspopup="true"
+                aria-expanded={isProfileMenuOpen}
+              >
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2b3a24] to-[#405736] flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#65b32e]/40 shadow-xs">
+                    {user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#65b32e] ring-2 ring-white" />
                 </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#65b32e] ring-2 ring-white" />
-              </div>
-              <div className="hidden lg:flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-slate-800 leading-tight">{user.name}</span>
-                  <span className="inline-flex items-center text-[10px] px-1.5 py-0.2 rounded-full bg-[#65b32e]/10 text-[#2b3a24] font-bold border border-[#65b32e]/20">
-                    Diretoria
-                  </span>
+                <div className="hidden lg:flex flex-col text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-slate-800 leading-tight">{user.name}</span>
+                    <span className={`inline-flex items-center text-[10px] px-1.5 py-0.2 rounded-full font-bold border ${
+                      user.role.toLowerCase().includes('diretor') || user.role === 'Diretoria'
+                        ? 'bg-[#65b32e]/15 text-[#2b3a24] border-[#65b32e]/30'
+                        : user.role.toLowerCase().includes('finan') || user.role === 'Financeiro'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 font-mono tracking-tight">{user.email}</span>
                 </div>
-                <span className="text-xs text-slate-500 font-mono tracking-tight">{user.email}</span>
-              </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+              </button>
+
+              {/* RBAC Profile Switcher Dropdown */}
+              {isProfileMenuOpen && availableUsers && availableUsers.length > 0 && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 pb-2 mb-1 border-b border-slate-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Simulação de Perfis (RBAC)
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Alterne entre os perfis para testar as permissões de faturamento.
+                    </p>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    {availableUsers.map((u) => {
+                      const isSelected = u.email === user.email;
+                      const isDirector = u.role.toLowerCase().includes('diretor') || u.role === 'Diretoria';
+                      const isFinance = u.role.toLowerCase().includes('finan') || u.role === 'Financeiro';
+                      const badgeClass = isDirector
+                        ? 'bg-[#65b32e]/15 text-[#2b3a24] border-[#65b32e]/30'
+                        : isFinance
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200';
+
+                      return (
+                        <button
+                          key={u.email}
+                          type="button"
+                          onClick={() => {
+                            onSwitchUser?.(u);
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
+                            isSelected ? 'bg-slate-50 font-semibold' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
+                              {u.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-900 font-medium truncate">{u.name}</span>
+                                <span className={`text-[9px] px-1 py-0.2 rounded font-bold border shrink-0 ${badgeClass}`}>
+                                  {u.role}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono block truncate">
+                                {!isDirector && !isFinance ? '🔒 Somente Leitura no Financeiro' : '🔓 Permissão de Faturamento'}
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-[#65b32e] shrink-0 ml-2" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

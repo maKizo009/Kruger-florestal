@@ -16,7 +16,7 @@ Esta análise avaliou a base de código do sistema **Krüger Florestal** sob as 
 
 | Categoria OWASP | Item Auditado | Severidade | Status |
 | :--- | :--- | :---: | :---: |
-| **A01: Broken Access Control** | Controle de permissões por perfil (Diretoria vs Técnico) | Médio | 🟡 A Fazer |
+| **A01: Broken Access Control** | Controle de permissões por perfil (Diretoria vs Técnico) | Médio | 🟢 Implementado |
 | **A02: Cryptographic Failures** | Exposição de dados sensíveis (LGPD: CPF/CNPJ mascarado com reveal) | Baixo / Médio | 🟢 Implementado |
 | **A03: Injection (XSS)** | Sanitização de links externos e protocolos inseguros (`driveUrl`) | **Alto** | 🟢 Implementado |
 | **A04: Insecure Design** | Limites de tamanho (maxLength), sanitização de inputs e numéricos | Médio | 🟢 Implementado |
@@ -24,7 +24,7 @@ Esta análise avaliou a base de código do sistema **Krüger Florestal** sob as 
 | **A06: Vulnerable Components** | Varredura de dependências de terceiros (`npm audit`) | Informativo | 🟢 Aprovado |
 | **A07: Identification Failures** | Gerenciamento de sessão e autenticação de usuário | Médio | 🟡 A Fazer |
 | **A08: Software & Data Integrity** | Integridade de pacotes e scripts externos | Baixo | 🟢 Aprovado |
-| **A09: Logging & Monitoring** | Registro de logs de auditoria não-manipuláveis e com data real | Baixo | 🟡 A Fazer |
+| **A09: Logging & Monitoring** | Registro de logs de auditoria não-manipuláveis e com data real | Baixo | 🟢 Implementado |
 | **A10: SSRF** | Requisições a serviços externos no frontend | Informativo | 🟢 Não aplicável |
 
 ---
@@ -136,30 +136,38 @@ export function maskDocument(doc?: string | null): string {
 
 ---
 
-### 🟡 [TASK-06] Integridade e Auditoria com Timestamps Dinâmicos
-- [ ] **Categoria:** A09: Security Logging & Monitoring Failures
-- [ ] **Severidade:** Baixa
-- [ ] **Arquivos afetados:**
+### 🟢 [TASK-06] Integridade e Auditoria com Timestamps Dinâmicos (Implementado)
+- [x] **Categoria:** A09: Security Logging & Monitoring Failures
+- [x] **Severidade:** Baixa
+- [x] **Arquivos afetados:**
   - [`src/App.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/App.tsx)
   - [`src/components/NewDemandModal.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/NewDemandModal.tsx)
-- [ ] **Descrição do Risco:** Registros de auditoria (`auditLogs`) utilizam strings estáticas pré-fixadas (ex: `'04/09 às 11:52'` e autor fixo `'Lucas Cenovicz'`) em vez de capturar o usuário autenticado atual e um timestamp ISO padrão internacional com formatação localizada.
-- [ ] **Ação Requerida:**
+  - [`src/components/DetailDrawer.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/DetailDrawer.tsx)
+  - [`src/utils/security.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/utils/security.ts)
+  - [`src/types/index.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/types/index.ts)
+- [x] **Descrição do Risco:** Registros de auditoria (`auditLogs`) utilizavam strings estáticas pré-fixadas (ex: `'04/09 às 11:52'` e autor fixo `'Lucas Cenovicz'`) em vez de capturar o usuário autenticado atual e um timestamp ISO padrão internacional com formatação localizada.
+- [x] **Ação Requerida:**
   1. Usar `currentUser.name` como autor de qualquer nova ação ou O.S.
   2. Gerar timestamps reais via `new Date().toISOString()` com apresentação formatada (`Intl.DateTimeFormat`).
-  3. Prevenir injeção de texto nos logs de auditoria.
+  3. Prevenir injeção de texto nos logs de auditoria (`sanitizeAuditText`).
 
 ---
 
-### 🟡 [TASK-07] Controle de Acesso Baseado em Perfis (RBAC)
-- [ ] **Categoria:** A01: Broken Access Control
-- [ ] **Severidade:** Média (Arquitetura)
-- [ ] **Arquivos afetados:**
+### 🟢 [TASK-07] Controle de Acesso Baseado em Perfis (RBAC) (Implementado)
+- [x] **Categoria:** A01: Broken Access Control
+- [x] **Severidade:** Média (Arquitetura)
+- [x] **Arquivos afetados:**
   - [`src/components/Header.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/Header.tsx)
   - [`src/components/DetailDrawer.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/components/DetailDrawer.tsx)
-- [ ] **Descrição do Risco:** Ação de alternar status de pagamento financeiro (`handleToggleFinancialStatus`) está acessível a qualquer perfil. Se um usuário com perfil puramente técnico acessar a tela, ele não deve poder dar baixa em faturamento sem credencial de Diretoria/Financeiro.
-- [ ] **Ação Requerida:**
-  1. Validar `user.role === 'Diretoria'` ou `user.role === 'Financeiro'` antes de liberar o toggle interativo de faturamento.
-  2. Exibir estado somente leitura para usuários técnicos.
+  - [`src/App.tsx`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/App.tsx)
+  - [`src/utils/security.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/utils/security.ts)
+  - [`src/types/index.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/types/index.ts)
+  - [`src/data/mockData.ts`](file:///C:/Users/Acer/Dev/Kruger-florestal/src/data/mockData.ts)
+- [x] **Descrição do Risco:** Ação de alternar status de pagamento financeiro (`handleToggleFinancialStatus`) estava acessível a qualquer perfil. Se um usuário com perfil puramente técnico acessasse a tela, ele não deve poder dar baixa em faturamento sem credencial de Diretoria/Financeiro.
+- [x] **Ação Requerida:**
+  1. Validar `canManageFinancials(user.role)` (`Diretoria` ou `Financeiro`) antes de liberar o toggle interativo de faturamento tanto na camada lógica (`App.tsx`) quanto defensiva de UI (`DetailDrawer.tsx`).
+  2. Exibir estado somente leitura bloqueado para usuários técnicos (`Tecnico`).
+  3. Prover seletor interativo de perfis no cabeçalho (`Header.tsx`) para testes rápidos e simulação de RBAC em tempo de execução.
 
 ---
 

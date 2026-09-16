@@ -1,4 +1,4 @@
-﻿export type DemandStatus = 
+export type DemandStatus = 
   | 'em_producao'
   | 'protocolado'
   | 'com_pendencia'
@@ -30,6 +30,7 @@ export interface AuditLog {
   author: string;
   action: string;
   timestamp: string;
+  rawTimestamp?: string;
 }
 
 export interface Demand {
@@ -59,9 +60,11 @@ export interface Demand {
   updatedAt: string;
 }
 
+export type UserRole = 'Diretoria' | 'Financeiro' | 'Tecnico' | string;
+
 export interface UserProfile {
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   avatarUrl?: string;
 }

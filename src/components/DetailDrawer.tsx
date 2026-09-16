@@ -12,16 +12,23 @@ import {
   Calendar, 
   FileCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  Lock
 } from 'lucide-react';
-import { Demand } from '../types';
-import { sanitizeExternalUrl, maskDocument } from '../utils/security';
+import { Demand, UserProfile } from '../types';
+import { 
+  sanitizeExternalUrl, 
+  maskDocument, 
+  formatAuditTimestamp,
+  canManageFinancials 
+} from '../utils/security';
 
 interface DetailDrawerProps {
   isOpen: boolean;
   demand: Demand | null;
   onClose: () => void;
   onToggleFinancialStatus: (milestoneKey: 'entrada' | 'protocolo' | 'devolucao') => void;
+  currentUser?: UserProfile;
 }
 
 export const DetailDrawer: React.FC<DetailDrawerProps> = ({
@@ -29,6 +36,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
   demand,
   onClose,
   onToggleFinancialStatus,
+  currentUser,
 }) => {
   const [showFullDocument, setShowFullDocument] = useState(false);
   const [prevDemandId, setPrevDemandId] = useState<string | null>(null);
@@ -42,6 +50,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
   if (!isOpen || !demand) return null;
 
   const fin = demand.financialMilestones;
+  const hasFinancialAccess = canManageFinancials(currentUser?.role);
   const sanitizedDriveUrl = sanitizeExternalUrl(demand.client.driveUrl);
   const sanitizedReceiptUrl = sanitizeExternalUrl(demand.protocolReceiptUrl);
 
@@ -314,9 +323,27 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                     <h3 className="text-sm font-bold text-slate-900">
                       Marcos Financeiros da O.S.
                     </h3>
-                    <span className="text-[11px] text-slate-500">Clique no botão para alternar entre Pago e Pendente</span>
+                    <span className="text-[11px] text-slate-500">
+                      {hasFinancialAccess
+                        ? 'Clique no botão para alternar entre Pago e Pendente'
+                        : 'Visualização somente leitura para perfil Técnico'}
+                    </span>
                   </div>
                 </div>
+                {!hasFinancialAccess ? (
+                  <span
+                    title="Apenas usuários com perfil Diretoria ou Financeiro podem alterar faturamento."
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md"
+                  >
+                    <Lock className="w-3 h-3 text-amber-600" />
+                    Somente Leitura (Técnico)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2b3a24] bg-[#65b32e]/10 border border-[#65b32e]/20 px-2 py-0.5 rounded-md">
+                    <Coins className="w-3 h-3 text-[#65b32e]" />
+                    {currentUser?.role || 'Diretoria'}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-3 mt-4">
@@ -334,16 +361,30 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                       {fin.entrada.paidAt ? `Liquidado em ${fin.entrada.paidAt}` : 'Pagamento inicial de mobilização'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onToggleFinancialStatus('entrada')}
-                    className={`px-3 py-1 text-xs font-bold rounded-md border transition-all ${
-                      fin.entrada.status === 'pago'
-                        ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    {fin.entrada.status === 'pago' ? '✓ Pago' : 'Pendente'}
-                  </button>
+                  {hasFinancialAccess ? (
+                    <button
+                      onClick={() => onToggleFinancialStatus('entrada')}
+                      className={`px-3 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
+                        fin.entrada.status === 'pago'
+                          ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      {fin.entrada.status === 'pago' ? '✓ Pago' : 'Pendente'}
+                    </button>
+                  ) : (
+                    <span
+                      title="Alteração restrita aos perfis Diretoria e Financeiro (Acesso Somente Leitura)"
+                      className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md border cursor-not-allowed select-none ${
+                        fin.entrada.status === 'pago'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      <Lock className="w-3 h-3 text-slate-400" />
+                      {fin.entrada.status === 'pago' ? '✓ Pago' : 'Pendente'}
+                    </span>
+                  )}
                 </div>
 
                 {/* 2. Protocolo */}
@@ -363,16 +404,30 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                       {fin.protocolo.status === 'pendente' ? 'Faturamento liberado com o envio do protocolo' : 'Etapa de protocolo faturada'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onToggleFinancialStatus('protocolo')}
-                    className={`px-3 py-1 text-xs font-bold rounded-md border transition-all ${
-                      fin.protocolo.status === 'pago'
-                        ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                        : 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs'
-                    }`}
-                  >
-                    {fin.protocolo.status === 'pago' ? '✓ Pago' : 'Cobrar (Pendente)'}
-                  </button>
+                  {hasFinancialAccess ? (
+                    <button
+                      onClick={() => onToggleFinancialStatus('protocolo')}
+                      className={`px-3 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
+                        fin.protocolo.status === 'pago'
+                          ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                          : 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs'
+                      }`}
+                    >
+                      {fin.protocolo.status === 'pago' ? '✓ Pago' : 'Cobrar (Pendente)'}
+                    </button>
+                  ) : (
+                    <span
+                      title="Alteração restrita aos perfis Diretoria e Financeiro (Acesso Somente Leitura)"
+                      className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md border cursor-not-allowed select-none ${
+                        fin.protocolo.status === 'pago'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
+                    >
+                      <Lock className="w-3 h-3 text-amber-500" />
+                      {fin.protocolo.status === 'pago' ? '✓ Pago' : 'Pendente'}
+                    </span>
+                  )}
                 </div>
 
                 {/* 3. Devolução / Final */}
@@ -388,16 +443,30 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                       Saldo residual para entrega da pasta física e certidão
                     </div>
                   </div>
-                  <button
-                    onClick={() => onToggleFinancialStatus('devolucao')}
-                    className={`px-3 py-1 text-xs font-bold rounded-md border transition-all ${
-                      fin.devolucao.status === 'pago'
-                        ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    {fin.devolucao.status === 'pago' ? '✓ Pago' : 'Pendente'}
-                  </button>
+                  {hasFinancialAccess ? (
+                    <button
+                      onClick={() => onToggleFinancialStatus('devolucao')}
+                      className={`px-3 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
+                        fin.devolucao.status === 'pago'
+                          ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      {fin.devolucao.status === 'pago' ? '✓ Pago' : 'Pendente'}
+                    </button>
+                  ) : (
+                    <span
+                      title="Alteração restrita aos perfis Diretoria e Financeiro (Acesso Somente Leitura)"
+                      className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md border cursor-not-allowed select-none ${
+                        fin.devolucao.status === 'pago'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      <Lock className="w-3 h-3 text-slate-400" />
+                      {fin.devolucao.status === 'pago' ? '✓ Pago' : 'Pendente'}
+                    </span>
+                  )}
                 </div>
 
               </div>
@@ -419,7 +488,9 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
                     <div className="text-slate-600">
                       <span className="font-semibold text-slate-900">{log.author}</span>
                       {' '}{log.action}{' '}
-                      <span className="text-slate-400 font-mono text-[11px]">({log.timestamp})</span>
+                      <span className="text-slate-400 font-mono text-[11px]">
+                        ({formatAuditTimestamp(log.rawTimestamp || log.timestamp)})
+                      </span>
                     </div>
                   </div>
                 ))}

@@ -1,11 +1,25 @@
 import { Demand, UserProfile } from '../types';
 
-export const currentUser: UserProfile = {
-  name: 'Lucas Cenovicz',
-  email: 'lucas@krugerflorestal.com.br',
-  role: 'Gestor / Diretor Técnico',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-};
+export const mockUsers: UserProfile[] = [
+  {
+    name: 'Lucas Cenovicz',
+    email: 'lucas@krugerflorestal.com.br',
+    role: 'Diretoria',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Mariana Costa',
+    email: 'mariana.costa@krugerflorestal.com.br',
+    role: 'Financeiro',
+  },
+  {
+    name: 'Pedro Santos',
+    email: 'pedro.santos@krugerflorestal.com.br',
+    role: 'Tecnico',
+  },
+];
+
+export const currentUser: UserProfile = mockUsers[0];
 
 export const initialDemands: Demand[] = [
   {

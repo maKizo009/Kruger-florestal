@@ -1,22 +1,35 @@
 import React, { useState } from 'react';
 import { X, FolderPlus, AlertCircle } from 'lucide-react';
-import { Demand, DemandStatus } from '../types';
-import { sanitizeFolderNumber, formatDocumentInput, parseSafeAmount } from '../utils/security';
+import { Demand, DemandStatus, UserProfile } from '../types';
+import { 
+  sanitizeFolderNumber, 
+  formatDocumentInput, 
+  parseSafeAmount,
+  createAuditLog,
+  formatDateBR,
+  formatDateTimeBR
+} from '../utils/security';
 
 interface NewDemandModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddDemand: (demand: Demand) => void;
+  currentUser?: UserProfile;
 }
 
-export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose, onAddDemand }) => {
+export const NewDemandModal: React.FC<NewDemandModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onAddDemand,
+  currentUser 
+}) => {
   const [folderNumber, setFolderNumber] = useState('');
   const [clientName, setClientName] = useState('');
   const [farmName, setFarmName] = useState('');
   const [document, setDocument] = useState('');
   const [serviceName, setServiceName] = useState('Retificação de CAR');
   const [agency, setAgency] = useState('IAT');
-  const [responsibleTech, setResponsibleTech] = useState('Lucas Cenovicz');
+  const [responsibleTech, setResponsibleTech] = useState(currentUser?.name || 'Lucas Cenovicz');
   const [amountEntrada, setAmountEntrada] = useState('1500');
   const [amountProtocolo, setAmountProtocolo] = useState('1500');
   const [amountDevolucao, setAmountDevolucao] = useState('1500');
@@ -30,6 +43,9 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
     const safeFolder = sanitizeFolderNumber(folderNumber);
     const safeClientName = clientName.trim().slice(0, 120);
     if (!safeFolder || !safeClientName) return;
+
+    const now = new Date();
+    const authorName = currentUser?.name || 'Lucas Cenovicz';
 
     const newDemand: Demand = {
       id: `dem-${Date.now()}`,
@@ -54,7 +70,7 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
           label: 'Entrada Inicial',
           amount: parseSafeAmount(amountEntrada),
           status: 'pago',
-          paidAt: '04/09/2026',
+          paidAt: formatDateBR(now),
         },
         protocolo: {
           label: `Protocolo ${agency}`,
@@ -69,15 +85,14 @@ export const NewDemandModal: React.FC<NewDemandModalProps> = ({ isOpen, onClose,
       },
       notes: notes.trim().slice(0, 1000) || undefined,
       auditLogs: [
-        {
-          id: `log-${Date.now()}`,
-          author: 'Lucas Cenovicz',
-          action: `criou a Ordem de Serviço com status "${status}"`,
-          timestamp: 'Hoje às 11:50',
-        },
+        createAuditLog(
+          authorName,
+          `criou a Ordem de Serviço com status "${status}"`,
+          now
+        ),
       ],
-      createdAt: '04/09/2026',
-      updatedAt: '04/09/2026 11:50',
+      createdAt: formatDateBR(now),
+      updatedAt: formatDateTimeBR(now),
     };
 
     onAddDemand(newDemand);
